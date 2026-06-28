@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0b0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Campus Hire">
+<meta name="description" content="Campus hiring intelligence — rankings, funnel analytics, and ROI simulation.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="96x96"  href="icons/icon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<title>Campus Hire</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0a0b0d;
+  --bg2:        #0e1014;
+  --surface:    #13151a;
+  --surface2:   #1a1d24;
+  --surface3:   #20242d;
+  --border:     rgba(255,255,255,0.06);
+  --border2:    rgba(255,255,255,0.11);
+  --border3:    rgba(255,255,255,0.16);
+  --accent:     #7c5cfc;
+  --accent2:    #a78bfa;
+  --accent-dim: rgba(124,92,252,0.1);
+  --accent-glow:rgba(124,92,252,0.25);
+  --accent-ring:rgba(124,92,252,0.4);
+  --text:       #f0f2f5;
+  --text2:      #c8cdd6;
+  --muted:      #6b7585;
+  --muted2:     #454e5e;
+  --green:      #3ecf8e;
+  --green-dim:  rgba(62,207,142,0.1);
+  --red:        #e05a5a;
+  --r:          16px;
+  --r2:         11px;
+  --r3:         8px;
+  --glow: 0 0 0 1px rgba(124,92,252,0.25), 0 8px 32px rgba(124,92,252,0.08);
+}
+
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Subtle grid bg ───────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(124,92,252,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,92,252,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.app { display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 1; }
+
+/* ── Topbar ───────────────────────────────────────── */
+.topbar {
+  background: rgba(13,15,20,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border2);
+  padding: 0 1rem;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 54px;
+  position: sticky; top: 0; z-index: 200;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 0.55rem;
+}
+.topbar-logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), #5030c0);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700; color: #ffffff;
+  letter-spacing: -0.03em;
+  font-family: 'Space Grotesk', sans-serif;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(124,92,252,0.3), 0 4px 12px rgba(124,92,252,0.2);
+}
+.topbar-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem; font-weight: 700;
+  letter-spacing: -0.03em; color: var(--text);
+}
+.topbar-name span { color: var(--accent); }
+.topbar-actions { display: flex; gap: 0.45rem; align-items: center; }
+.icon-btn {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r3); color: var(--muted);
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 0.95rem; transition: all 0.18s;
+  flex-shrink: 0;
+}
+.icon-btn:active, .icon-btn.active {
+  background: var(--accent-dim); border-color: var(--accent-ring); color: var(--accent);
+}
+
+/* ── Main ─────────────────────────────────────────── */
+.main { flex: 1; padding: 1.1rem 1rem 5rem; max-width: 620px; margin: 0 auto; width: 100%; }
+
+/* ── Upload screen ────────────────────────────────── */
+.upload-hero {
+  padding: 2rem 0 1.6rem;
+  text-align: center;
+}
+.upload-hero-badge {
+  display: inline-block;
+  background: var(--accent-dim); border: 1px solid var(--accent-ring);
+  border-radius: 999px; padding: 0.3rem 0.85rem;
+  font-size: 0.7rem; font-weight: 600; color: var(--accent);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 1rem;
+}
+.upload-hero-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2rem; font-weight: 700; letter-spacing: -0.04em;
+  line-height: 1.05; color: var(--text); margin-bottom: 0.5rem;
+}
+.upload-hero-title em { color: var(--accent); font-style: normal; }
+.upload-hero-sub {
+  font-size: 0.88rem; color: var(--muted); line-height: 1.55; max-width: 320px; margin: 0 auto 1.8rem;
+}
+
+.upload-field-label {
+  font-size: 0.7rem; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.09em;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.5rem;
+}
+.upload-zone {
+  background: var(--surface);
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--r); padding: 1.3rem 1rem;
+  text-align: center; cursor: pointer;
+  transition: all 0.2s; margin-bottom: 0.85rem;
+  position: relative;
+}
+.upload-zone:active, .upload-zone.dragover {
+  border-color: var(--accent-ring); background: var(--accent-dim);
+}
+.upload-zone.has-file {
+  border-style: solid; border-color: var(--accent);
+  background: rgba(124,92,252,0.07);
+  box-shadow: var(--glow);
+}
+.upload-zone input { display: none; }
+.upload-icon { font-size: 1.6rem; margin-bottom: 0.35rem; line-height: 1; }
+.upload-label { font-size: 0.84rem; color: var(--muted); line-height: 1.4; }
+.upload-label strong { color: var(--text); display: block; margin-bottom: 0.15rem; font-size: 0.88rem; }
+.upload-zone.has-file .upload-label strong { color: var(--accent); }
+.upload-check {
+  position: absolute; top: 0.65rem; right: 0.8rem;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent); color: #ffffff;
+  display: none; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 800;
+}
+.upload-zone.has-file .upload-check { display: flex; }
+
+.privacy-note {
+  text-align: center; font-size: 0.73rem; color: var(--muted2);
+  line-height: 1.6; margin-top: 1rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+}
+.privacy-note::before { content: '🔒'; font-size: 0.75rem; }
+
+/* ── Buttons ──────────────────────────────────────── */
+.btn {
+  display: block; width: 100%; padding: 0.9rem;
+  border: none; border-radius: var(--r2);
+  font-weight: 700; font-size: 0.92rem; cursor: pointer;
+  transition: all 0.18s; text-align: center; font-family: inherit;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #6040d4);
+  color: #ffffff;
+  box-shadow: 0 4px 20px rgba(124,92,252,0.25), 0 1px 0 rgba(255,255,255,0.1) inset;
+}
+.btn-primary:not(:disabled):active { transform: translateY(1px); box-shadow: 0 2px 10px rgba(124,92,252,0.2); }
+.btn-primary:disabled {
+  background: var(--surface2); color: var(--muted2);
+  cursor: not-allowed; box-shadow: none;
+}
+.btn-ghost {
+  background: var(--surface2); color: var(--muted);
+  border: 1px solid var(--border2); margin-top: 0.55rem;
+}
+.btn-ghost:active { background: var(--surface3); }
+.btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; width: auto; display: inline-block; border-radius: var(--r3); }
+
+/* ── Toast ────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 5rem; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  background: var(--surface3); border: 1px solid var(--border3);
+  border-left: 3px solid var(--accent);
+  color: var(--text); padding: 0.65rem 1.1rem;
+  border-radius: var(--r2); font-size: 0.83rem;
+  z-index: 999; transition: all 0.25s; white-space: nowrap; max-width: 88vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ── Section ──────────────────────────────────────── */
+.section { margin-bottom: 1.6rem; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.8rem; padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--border);
+}
+.section-title {
+  font-size: 0.68rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); font-family: 'JetBrains Mono', monospace;
+}
+.section-note { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.8rem; line-height: 1.55; }
+
+/* ── KPI Cards ────────────────────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 1rem 0.9rem;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+.kpi-card::after {
+  content: '';
+  position: absolute; bottom: 0; right: 0;
+  width: 60px; height: 60px;
+  background: radial-gradient(circle, rgba(124,92,252,0.07) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.kpi-label {
+  font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; margin-bottom: 0.35rem;
+}
+.kpi-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.65rem; font-weight: 700; letter-spacing: -0.04em;
+  color: var(--text); line-height: 1;
+}
+.kpi-sub { font-size: 0.7rem; color: var(--muted2); margin-top: 0.35rem; line-height: 1.35; }
+
+/* ── Chart Card ───────────────────────────────────── */
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1rem 0.9rem; margin-bottom: 0.75rem;
+}
+.chart-wrap { position: relative; }
+
+/* ── Tab bar ──────────────────────────────────────── */
+.tab-bar {
+  display: flex; gap: 0;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 3px;
+  margin-bottom: 1.1rem; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto; padding: 0.5rem 0.85rem; border-radius: var(--r2);
+  font-size: 0.77rem; font-weight: 600; color: var(--muted);
+  cursor: pointer; white-space: nowrap; transition: all 0.18s;
+  border: none; background: none; font-family: inherit;
+}
+.tab.active {
+  background: linear-gradient(135deg, var(--accent), #6040d4);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(124,92,252,0.2);
+}
+
+/* ── Status bar ───────────────────────────────────── */
+.status-bar {
+  background: var(--green-dim); border: 1px solid rgba(62,207,142,0.2);
+  border-left: 3px solid var(--green);
+  border-radius: var(--r2); padding: 0.7rem 0.9rem;
+  font-size: 0.81rem; color: var(--text2); margin-bottom: 1rem; line-height: 1.5;
+}
+
+/* ── Table ────────────────────────────────────────── */
+.table-scroll { max-height: 340px; overflow-y: auto; overflow-x: auto; border-radius: var(--r2); border: 1px solid var(--border); }
+.table-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+.table-scroll::-webkit-scrollbar-track { background: transparent; }
+.table-scroll::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 999px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 360px; }
+thead th {
+  background: var(--surface2); color: var(--muted);
+  font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.09em;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.65rem 0.75rem; text-align: left; white-space: nowrap;
+  position: sticky; top: 0; border-bottom: 1px solid var(--border2);
+}
+tbody tr { border-top: 1px solid var(--border); transition: background 0.12s; }
+tbody tr:active { background: var(--surface2); }
+tbody td { padding: 0.7rem 0.75rem; color: var(--text2); vertical-align: middle; }
+tbody td:first-child { color: var(--text); }
+
+.rank-badge {
+  display: inline-block; background: var(--accent-dim); color: var(--accent);
+  border: 1px solid var(--accent-ring); border-radius: 6px;
+  padding: 0.15rem 0.5rem; font-size: 0.68rem; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.tier-badge {
+  display: inline-block; background: var(--surface3); color: var(--muted);
+  border-radius: 6px; padding: 0.15rem 0.45rem; font-size: 0.66rem;
+  border: 1px solid var(--border2);
+}
+
+/* ── Insight items ────────────────────────────────── */
+.insight-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r2); padding: 0.85rem 1rem;
+  margin-bottom: 0.65rem; font-size: 0.84rem;
+  color: var(--muted); line-height: 1.6;
+}
+.insight-item strong { color: var(--text); }
+
+/* ── Funnel bars ──────────────────────────────────── */
+.funnel-row { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.6rem; }
+.funnel-label {
+  font-size: 0.69rem; color: var(--muted); width: 82px; flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+.funnel-bar-wrap {
+  flex: 1; background: var(--surface3); border-radius: 5px;
+  height: 28px; overflow: hidden;
+}
+.funnel-bar {
+  height: 100%; border-radius: 5px;
+  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;
+}
+.funnel-bar span { font-size: 0.69rem; font-weight: 700; color: #ffffff; white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+.funnel-pct { font-size: 0.66rem; color: var(--muted2); width: 38px; text-align: right; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; }
+
+/* ── Filter / chips ───────────────────────────────── */
+.filter-row { display: flex; gap: 0.45rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
+.filter-chip {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 999px; padding: 0.3rem 0.8rem;
+  font-size: 0.76rem; cursor: pointer; color: var(--muted);
+  transition: all 0.15s; white-space: nowrap;
+}
+.filter-chip.active {
+  background: var(--accent-dim); border-color: var(--accent-ring); color: var(--accent);
+}
+select.filter-select {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r2); color: var(--text2);
+  padding: 0.55rem 0.8rem; font-size: 0.82rem; font-family: inherit;
+  outline: none; width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7585' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.8rem center;
+  padding-right: 2.2rem;
+}
+
+/* ── Simulator ────────────────────────────────────── */
+.sim-row { display: flex; gap: 0.65rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.sim-field { flex: 1; min-width: 128px; }
+.sim-label {
+  font-size: 0.67rem; color: var(--muted); margin-bottom: 0.35rem;
+  font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em;
+}
+input[type=number] {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r2); color: var(--text);
+  padding: 0.6rem 0.8rem; font-size: 0.88rem; font-family: inherit; width: 100%; outline: none;
+  transition: border-color 0.15s;
+}
+input[type=number]:focus { border-color: var(--accent-ring); }
+
+.sim-result-note {
+  background: rgba(124,92,252,0.07); border: 1px solid var(--accent-glow);
+  border-left: 3px solid var(--accent); border-radius: var(--r2);
+  padding: 0.8rem 1rem; font-size: 0.83rem; color: var(--text2);
+  line-height: 1.55; margin-top: 0.75rem;
+}
+
+/* ── Recommendation cards ─────────────────────────── */
+.rec-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 0.9rem 1rem; margin-bottom: 0.65rem;
+  display: flex; gap: 0.9rem; align-items: flex-start;
+  transition: border-color 0.15s;
+}
+.rec-rank {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.4rem; font-weight: 700; color: var(--accent);
+  line-height: 1; letter-spacing: -0.04em; flex-shrink: 0; width: 26px; margin-top: 2px;
+}
+.rec-body { flex: 1; min-width: 0; }
+.rec-name {
+  font-weight: 600; font-size: 0.9rem; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 0.35rem;
+}
+.rec-stats { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.rec-stat {
+  background: var(--surface3); border-radius: 6px;
+  padding: 0.2rem 0.5rem; font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace; color: var(--muted);
+  white-space: nowrap;
+}
+.rec-stat span { color: var(--text2); font-weight: 500; }
+
+/* ── Filter panel ─────────────────────────────────── */
+#filter-panel {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 1.1rem; margin-bottom: 1rem;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+.app-footer {
+  text-align: center; padding: 1.5rem 1rem 2rem;
+  font-size: 0.75rem; color: var(--muted2); line-height: 1.8;
+  border-top: 1px solid var(--border);
+  margin-top: 1rem;
+}
+.footer-brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700; letter-spacing: -0.02em;
+}
+.footer-brand span { color: var(--accent); }
+
+/* ── FTW watermark (bottom-right) ─────────────────── */
+.ftw-mark {
+  position: fixed; bottom: 1rem; right: 1rem; z-index: 100;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--muted2); opacity: 0.55;
+  pointer-events: none; user-select: none;
+}
+
+/* ── Gauge caption ────────────────────────────────── */
+#gauge-caption {
+  text-align: center; font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (min-width: 480px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 600px) { .kpi-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (prefers-reduced-motion: reduce) { *, .funnel-bar { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">CH</div>
+    <div class="topbar-name">Campus <span>Hire</span></div>
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" id="btn-filter" title="Filters" onclick="toggleFilterPanel()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-upload-again" title="Upload new data" onclick="showUpload()" style="display:none">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="main" id="main-content">
+
+  <!-- Upload Screen -->
+  <div id="screen-upload">
+    <div class="upload-hero">
+      <div class="upload-hero-badge">Hiring Intelligence</div>
+      <div class="upload-hero-title">Campus <em>Hire</em></div>
+      <div class="upload-hero-sub">Upload your recruiting data and get ranked college insights, funnel diagnostics, and ROI simulations — instantly.</div>
+    </div>
+
+    <div class="upload-field-label">College Data</div>
+    <div class="upload-zone" id="zone-college" onclick="document.getElementById('inp-college').click()">
+      <input type="file" id="inp-college" accept=".xlsx" onchange="handleFile('college',this)">
+      <div class="upload-check">✓</div>
+      <div class="upload-icon">📊</div>
+      <div class="upload-label"><strong id="college-name">Choose Excel file</strong>College hiring data · .xlsx</div>
+    </div>
+
+    <div class="upload-field-label">Employee Data</div>
+    <div class="upload-zone" id="zone-employee" onclick="document.getElementById('inp-employee').click()">
+      <input type="file" id="inp-employee" accept=".xlsx" onchange="handleFile('employee',this)">
+      <div class="upload-check">✓</div>
+      <div class="upload-icon">👥</div>
+      <div class="upload-label"><strong id="employee-name">Choose Excel file</strong>Employee tenure data · .xlsx</div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-generate" disabled onclick="generate()">Generate Dashboard</button>
+
+    <div class="privacy-note">Files stay on your device — nothing is uploaded.</div>
+  </div>
+
+  <!-- Filter Panel -->
+  <div id="filter-panel" style="display:none">
+    <div class="section">
+      <div class="section-header"><span class="section-title">College Tier</span></div>
+      <div class="filter-row" id="tier-chips"></div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Colleges</span>
+        <button onclick="toggleAllColleges()" id="btn-college-toggle" style="font-size:0.7rem;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;padding:0">Deselect all</button>
+      </div>
+      <div id="college-filter-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:0.3rem;padding:0.1rem 0;scrollbar-width:thin"></div>
+    </div>
+    <div class="section" style="margin-bottom:0.9rem">
+      <div class="section-header"><span class="section-title">Department</span></div>
+      <select class="filter-select" id="dept-select" onchange="applyFilters()">
+        <option value="">All departments</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="applyFilters();hideFilterPanel()">Apply</button>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="screen-dashboard" style="display:none">
+    <div id="link-status"></div>
+
+    <div class="tab-bar">
+      <button class="tab active" onclick="showTab('overview')">Overview</button>
+      <button class="tab" onclick="showTab('funnel')">Funnel</button>
+      <button class="tab" onclick="showTab('rankings')">Rankings</button>
+      <button class="tab" onclick="showTab('simulator')">ROI Sim</button>
+      <button class="tab" onclick="showTab('insights')">Insights</button>
+    </div>
+
+    <!-- Overview -->
+    <div id="tab-overview">
+      <div class="section">
+        <div class="section-header"><span class="section-title">Key Metrics</span></div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Cost vs Acceptance</span></div>
+        <div class="section-note">Bubble size = employee count. Colour intensity = performance score.</div>
+        <div class="chart-card"><div class="chart-wrap" style="height:240px"><canvas id="chart-scatter"></canvas></div></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Top Picks</span></div>
+        <div id="recommendations"></div>
+      </div>
+    </div>
+
+    <!-- Funnel -->
+    <div id="tab-funnel" style="display:none">
+      <div class="section">
+        <div class="section-header"><span class="section-title">Hiring Funnel</span></div>
+        <div class="section-note">Aggregate across selected campuses.</div>
+        <div id="funnel-bars"></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Stage Breakdown</span></div>
+        <div class="chart-card"><div class="chart-wrap" style="height:220px"><canvas id="chart-funnel"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- Rankings -->
+    <div id="tab-rankings" style="display:none">
+      <div class="section">
+        <div class="section-header"><span class="section-title">Performance Rankings</span></div>
+        <div class="chart-card"><div class="chart-wrap" style="height:300px"><canvas id="chart-rankings"></canvas></div></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">All Colleges</span></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>#</th><th>College</th><th>Tier</th><th>Score</th><th>Conf.</th><th>Accept%</th><th>Attr%</th><th>CTC</th></tr></thead>
+            <tbody id="rankings-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simulator -->
+    <div id="tab-simulator" style="display:none">
+      <div class="section">
+        <div class="section-header"><span class="section-title">Outcome Estimator</span></div>
+        <select class="filter-select" id="estimator-college" onchange="updateEstimator()" style="margin-bottom:0.8rem"></select>
+        <div class="kpi-grid" id="estimator-cards"></div>
+        <div class="chart-card" style="margin-top:0.85rem">
+          <div class="chart-wrap" style="height:180px"><canvas id="chart-gauge"></canvas></div>
+          <div id="gauge-caption"></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">ROI Simulator</span></div>
+        <select class="filter-select" id="roi-college" onchange="updateROI()" style="margin-bottom:0.8rem"></select>
+        <div class="sim-row">
+          <div class="sim-field">
+            <div class="sim-label">Offers</div>
+            <input type="number" id="roi-offers" value="20" min="1" max="500" oninput="updateROI()">
+          </div>
+          <div class="sim-field">
+            <div class="sim-label">Budget (LPA)</div>
+            <input type="number" id="roi-budget" value="60" min="1" step="5" oninput="updateROI()">
+          </div>
+        </div>
+        <div class="kpi-grid" id="roi-cards"></div>
+        <div class="sim-result-note" id="roi-note"></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Compare Colleges</span></div>
+        <div class="section-note">Tap up to 3 colleges to compare side-by-side.</div>
+        <div id="compare-chips" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.8rem"></div>
+        <div class="chart-card"><div class="chart-wrap" style="height:250px"><canvas id="chart-radar"></canvas></div></div>
+        <div class="table-scroll" style="margin-top:0.7rem">
+          <table>
+            <thead><tr><th>College</th><th>Accept%</th><th>Attr%</th><th>CTC</th><th>ROI</th></tr></thead>
+            <tbody id="compare-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insights -->
+    <div id="tab-insights" style="display:none">
+      <div class="section">
+        <div class="section-header"><span class="section-title">Auto Insights</span></div>
+        <div id="insights-list"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+      <div class="footer-brand">Campus <span>Hire</span></div>
+      <div>made by <strong>FTW.</strong></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+<div class="ftw-mark">ftw.</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let STATE = {
+  collegeRaw: null, employeeRaw: null,
+  metrics: null, summary: null, employees: null,
+  filters: { tiers: [], dept: '' },
+  activeTiers: new Set(), activeDept: '',
+  compareSet: new Set(), charts: {}, currentTab: 'overview'
+};
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+const safeDivide = (n, d) => (!d || isNaN(d)) ? 0 : n / d;
+const fmt  = (n, dec=1) => isNaN(n) ? '—' : Number(n).toFixed(dec);
+const fmtPct = v => fmt(v * 100) + '%';
+const fmtCTC = v => {
+  if (!v || isNaN(v)) return '—';
+  if (v > 10000) return (v / 100000).toFixed(1) + ' LPA';
+  return v.toFixed(1) + ' LPA';
+};
+const cleanText = v => {
+  if (!v && v !== 0) return 'unknown';
+  return String(v).trim().toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9\s]+/g,' ').replace(/\s+/g,' ').trim() || 'unknown';
+};
+const canonCol = name => String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+const normalize = arr => {
+  const nums = arr.map(v => isNaN(v) ? 0 : +v);
+  const mn = Math.min(...nums), mx = Math.max(...nums);
+  if (mx === mn) return nums.map(() => mn === 0 ? 0 : 1);
+  return nums.map(v => (v - mn) / (mx - mn));
+};
+const toast = (msg, dur=2800) => {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+};
+const destroyChart = key => { if (STATE.charts[key]) { STATE.charts[key].destroy(); delete STATE.charts[key]; } };
+
+// Chart defaults — dark palette
+Chart.defaults.color = '#6b7585';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+
+// ═══════════════════════════════════════════════════
+// FILE HANDLING
+// ═══════════════════════════════════════════════════
+function handleFile(type, inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval: null });
+    if (type === 'college') {
+      STATE.collegeRaw = raw;
+      document.getElementById('college-name').textContent = file.name;
+      document.getElementById('zone-college').classList.add('has-file');
+    } else {
+      STATE.employeeRaw = raw;
+      document.getElementById('employee-name').textContent = file.name;
+      document.getElementById('zone-employee').classList.add('has-file');
+    }
+    document.getElementById('btn-generate').disabled = !(STATE.collegeRaw && STATE.employeeRaw);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════════════════════════
+// SAMPLE DATA
+// ═══════════════════════════════════════════════════
+function loadSampleData() {
+  STATE.collegeRaw = [
+    {College:'IIT Bombay','College Tier':'Tier 1','Applications Received from each campus':856,'Roles opened for each campus':27,Shortlisted:348,Interviewed:342,Offers:186,Accepted:158,Declined:28,'PPI offered':18,'PPI accepted':11,'PPO offered':27,'PPO accepted':19,'Aggregate Manager Rating':4.48,'Average CTC Offered':27.14},
+    {College:'IIT Delhi','College Tier':'Tier 1','Applications Received from each campus':428,'Roles opened for each campus':33,Shortlisted:158,Interviewed:99,Offers:76,Accepted:64,Declined:12,'PPI offered':15,'PPI accepted':10,'PPO offered':24,'PPO accepted':14,'Aggregate Manager Rating':4.82,'Average CTC Offered':19.39},
+    {College:'IIT Madras','College Tier':'Tier 1','Applications Received from each campus':920,'Roles opened for each campus':22,Shortlisted:288,Interviewed:205,Offers:125,Accepted:106,Declined:19,'PPI offered':20,'PPI accepted':16,'PPO offered':25,'PPO accepted':16,'Aggregate Manager Rating':4.45,'Average CTC Offered':27.08},
+    {College:'BITS Pilani','College Tier':'Tier 1','Applications Received from each campus':649,'Roles opened for each campus':36,Shortlisted:372,Interviewed:354,Offers:338,Accepted:253,Declined:85,'PPI offered':11,'PPI accepted':8,'PPO offered':34,'PPO accepted':21,'Aggregate Manager Rating':4.64,'Average CTC Offered':30.91},
+    {College:'NIT Surathkal','College Tier':'Tier 1','Applications Received from each campus':338,'Roles opened for each campus':29,Shortlisted:160,Interviewed:125,Offers:107,Accepted:73,Declined:34,'PPI offered':45,'PPI accepted':39,'PPO offered':29,'PPO accepted':18,'Aggregate Manager Rating':3.37,'Average CTC Offered':7.59},
+    {College:'SRM University','College Tier':'Tier 1','Applications Received from each campus':457,'Roles opened for each campus':73,Shortlisted:195,Interviewed:151,Offers:140,Accepted:104,Declined:36,'PPI offered':44,'PPI accepted':33,'PPO offered':41,'PPO accepted':25,'Aggregate Manager Rating':3.96,'Average CTC Offered':9.09},
+    {College:'NMIMS Mumbai','College Tier':'Tier 1','Applications Received from each campus':494,'Roles opened for each campus':51,Shortlisted:192,Interviewed:115,Offers:96,Accepted:75,Declined:21,'PPI offered':41,'PPI accepted':29,'PPO offered':27,'PPO accepted':23,'Aggregate Manager Rating':4.15,'Average CTC Offered':7.08},
+    {College:'Symbiosis Pune','College Tier':'Tier 1','Applications Received from each campus':307,'Roles opened for each campus':49,Shortlisted:152,Interviewed:132,Offers:87,Accepted:64,Declined:23,'PPI offered':32,'PPI accepted':20,'PPO offered':35,'PPO accepted':24,'Aggregate Manager Rating':4.05,'Average CTC Offered':9.58},
+    {College:'Delhi University','College Tier':'Tier 1','Applications Received from each campus':523,'Roles opened for each campus':31,Shortlisted:193,Interviewed:182,Offers:115,Accepted:91,Declined:24,'PPI offered':40,'PPI accepted':34,'PPO offered':12,'PPO accepted':9,'Aggregate Manager Rating':3.45,'Average CTC Offered':14.19},
+    {College:'Jadavpur University','College Tier':'Tier 1','Applications Received from each campus':456,'Roles opened for each campus':44,Shortlisted:195,Interviewed:183,Offers:95,Accepted:66,Declined:29,'PPI offered':42,'PPI accepted':33,'PPO offered':45,'PPO accepted':30,'Aggregate Manager Rating':4.26,'Average CTC Offered':16.50},
+    {College:'Calcutta University','College Tier':'Tier 1','Applications Received from each campus':821,'Roles opened for each campus':57,Shortlisted:354,Interviewed:321,Offers:245,Accepted:163,Declined:82,'PPI offered':41,'PPI accepted':36,'PPO offered':12,'PPO accepted':9,'Aggregate Manager Rating':4.25,'Average CTC Offered':16.75},
+    {College:'Pune University','College Tier':'Tier 1','Applications Received from each campus':502,'Roles opened for each campus':49,Shortlisted:214,Interviewed:210,Offers:167,Accepted:103,Declined:64,'PPI offered':26,'PPI accepted':21,'PPO offered':20,'PPO accepted':12,'Aggregate Manager Rating':4.12,'Average CTC Offered':16.44},
+    {College:'Aligarh Muslim University','College Tier':'Tier 1','Applications Received from each campus':772,'Roles opened for each campus':28,Shortlisted:402,Interviewed:298,Offers:291,Accepted:183,Declined:108,'PPI offered':26,'PPI accepted':19,'PPO offered':18,'PPO accepted':14,'Aggregate Manager Rating':3.67,'Average CTC Offered':6.19},
+    {College:'Amity University','College Tier':'Tier 2','Applications Received from each campus':574,'Roles opened for each campus':86,Shortlisted:267,Interviewed:258,Offers:136,Accepted:95,Declined:41,'PPI offered':10,'PPI accepted':8,'PPO offered':37,'PPO accepted':31,'Aggregate Manager Rating':3.64,'Average CTC Offered':8.46},
+    {College:'Lovely Professional University','College Tier':'Tier 2','Applications Received from each campus':821,'Roles opened for each campus':97,Shortlisted:282,Interviewed:227,Offers:131,Accepted:91,Declined:40,'PPI offered':50,'PPI accepted':42,'PPO offered':40,'PPO accepted':34,'Aggregate Manager Rating':3.82,'Average CTC Offered':7.59},
+    {College:'NIT Trichy','College Tier':'Tier 2','Applications Received from each campus':493,'Roles opened for each campus':67,Shortlisted:232,Interviewed:153,Offers:150,Accepted:99,Declined:51,'PPI offered':49,'PPI accepted':31,'PPO offered':11,'PPO accepted':8,'Aggregate Manager Rating':4.19,'Average CTC Offered':16.59},
+    {College:'NIT Warangal','College Tier':'Tier 2','Applications Received from each campus':685,'Roles opened for each campus':38,Shortlisted:306,Interviewed:222,Offers:180,Accepted:119,Declined:61,'PPI offered':45,'PPI accepted':32,'PPO offered':48,'PPO accepted':33,'Aggregate Manager Rating':3.39,'Average CTC Offered':16.32},
+    {College:'IIIT Hyderabad','College Tier':'Tier 2','Applications Received from each campus':911,'Roles opened for each campus':24,Shortlisted:283,Interviewed:253,Offers:236,Accepted:160,Declined:76,'PPI offered':29,'PPI accepted':17,'PPO offered':11,'PPO accepted':8,'Aggregate Manager Rating':3.81,'Average CTC Offered':8.23},
+    {College:'IIIT Bangalore','College Tier':'Tier 2','Applications Received from each campus':794,'Roles opened for each campus':75,Shortlisted:254,Interviewed:203,Offers:185,Accepted:139,Declined:46,'PPI offered':42,'PPI accepted':34,'PPO offered':12,'PPO accepted':7,'Aggregate Manager Rating':3.65,'Average CTC Offered':10.10},
+    {College:'VIT Vellore','College Tier':'Tier 2','Applications Received from each campus':710,'Roles opened for each campus':52,Shortlisted:397,Interviewed:263,Offers:133,Accepted:88,Declined:45,'PPI offered':28,'PPI accepted':18,'PPO offered':43,'PPO accepted':28,'Aggregate Manager Rating':4.28,'Average CTC Offered':14.01},
+    {College:'Manipal Institute of Technology','College Tier':'Tier 2','Applications Received from each campus':792,'Roles opened for each campus':30,Shortlisted:316,Interviewed:223,Offers:119,Accepted:83,Declined:36,'PPI offered':18,'PPI accepted':15,'PPO offered':42,'PPO accepted':28,'Aggregate Manager Rating':3.98,'Average CTC Offered':16.45},
+    {College:'Christ University','College Tier':'Tier 2','Applications Received from each campus':974,'Roles opened for each campus':66,Shortlisted:442,Interviewed:406,Offers:258,Accepted:172,Declined:86,'PPI offered':18,'PPI accepted':12,'PPO offered':34,'PPO accepted':29,'Aggregate Manager Rating':4.16,'Average CTC Offered':14.22},
+    {College:'Mumbai University','College Tier':'Tier 2','Applications Received from each campus':593,'Roles opened for each campus':79,Shortlisted:295,Interviewed:249,Offers:188,Accepted:148,Declined:40,'PPI offered':23,'PPI accepted':15,'PPO offered':47,'PPO accepted':32,'Aggregate Manager Rating':3.72,'Average CTC Offered':12.79},
+    {College:'Anna University','College Tier':'Tier 2','Applications Received from each campus':408,'Roles opened for each campus':86,Shortlisted:169,Interviewed:151,Offers:133,Accepted:81,Declined:52,'PPI offered':21,'PPI accepted':13,'PPO offered':50,'PPO accepted':40,'Aggregate Manager Rating':4.12,'Average CTC Offered':14.00},
+    {College:'Osmania University','College Tier':'Tier 2','Applications Received from each campus':603,'Roles opened for each campus':91,Shortlisted:208,Interviewed:134,Offers:132,Accepted:94,Declined:38,'PPI offered':10,'PPI accepted':8,'PPO offered':29,'PPO accepted':21,'Aggregate Manager Rating':3.91,'Average CTC Offered':11.25},
+    {College:'Jamia Millia Islamia','College Tier':'Tier 2','Applications Received from each campus':993,'Roles opened for each campus':20,Shortlisted:535,Interviewed:344,Offers:323,Accepted:204,Declined:119,'PPI offered':18,'PPI accepted':13,'PPO offered':32,'PPO accepted':22,'Aggregate Manager Rating':3.86,'Average CTC Offered':11.93},
+    {College:'Local Engineering College','College Tier':'Tier 3','Applications Received from each campus':492,'Roles opened for each campus':39,Shortlisted:217,Interviewed:216,Offers:211,Accepted:126,Declined:85,'PPI offered':30,'PPI accepted':19,'PPO offered':42,'PPO accepted':33,'Aggregate Manager Rating':3.20,'Average CTC Offered':5.40},
+  ];
+  STATE.employeeRaw = [
+    {employee_id:1,college:'IIT Bombay',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:14},{employee_id:2,college:'IIT Bombay',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:11},{employee_id:3,college:'IIT Bombay',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:20},{employee_id:4,college:'IIT Bombay',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:12},{employee_id:5,college:'IIT Delhi',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:23},{employee_id:6,college:'IIT Delhi',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:22},{employee_id:7,college:'IIT Delhi',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:20},{employee_id:8,college:'IIT Delhi',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:24},{employee_id:9,college:'IIT Madras',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:21},{employee_id:10,college:'IIT Madras',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:24},{employee_id:11,college:'IIT Madras',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:20},{employee_id:12,college:'IIT Madras',company_department:'Product','PPO/PPI Offered':'Yes',number_of_months_in_the_company:11},{employee_id:13,college:'IIT Madras',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:22},{employee_id:14,college:'IIT Madras',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:15},{employee_id:15,college:'Amity University',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:2},{employee_id:16,college:'Amity University',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:4},{employee_id:17,college:'Amity University',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:2},{employee_id:18,college:'Lovely Professional University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:5},{employee_id:19,college:'Lovely Professional University',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:2},{employee_id:20,college:'Lovely Professional University',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:2},{employee_id:21,college:'Lovely Professional University',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:5},{employee_id:22,college:'Local Engineering College',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:10},{employee_id:23,college:'Local Engineering College',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:2},{employee_id:24,college:'Local Engineering College',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:4},{employee_id:25,college:'Local Engineering College',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:3},{employee_id:26,college:'Local Engineering College',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:3},{employee_id:27,college:'Local Engineering College',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:5},{employee_id:28,college:'BITS Pilani',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:14},{employee_id:29,college:'BITS Pilani',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:22},{employee_id:30,college:'BITS Pilani',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:21},{employee_id:31,college:'BITS Pilani',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:13},{employee_id:32,college:'BITS Pilani',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:19},{employee_id:33,college:'NIT Trichy',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:12},{employee_id:34,college:'NIT Trichy',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:10},{employee_id:35,college:'NIT Trichy',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:4},{employee_id:36,college:'NIT Trichy',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:9},{employee_id:37,college:'NIT Trichy',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:17},{employee_id:38,college:'NIT Trichy',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:16},{employee_id:39,college:'NIT Surathkal',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:12},{employee_id:40,college:'NIT Surathkal',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:14},{employee_id:41,college:'NIT Surathkal',company_department:'Product','PPO/PPI Offered':'Yes',number_of_months_in_the_company:9},{employee_id:42,college:'NIT Surathkal',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:18},{employee_id:43,college:'NIT Warangal',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:18},{employee_id:44,college:'NIT Warangal',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:14},{employee_id:45,college:'NIT Warangal',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:7},{employee_id:46,college:'NIT Warangal',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:13},{employee_id:47,college:'NIT Warangal',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:4},{employee_id:48,college:'IIIT Hyderabad',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:4},{employee_id:49,college:'IIIT Hyderabad',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:8},{employee_id:50,college:'IIIT Hyderabad',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:7},{employee_id:51,college:'IIIT Bangalore',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:18},{employee_id:52,college:'IIIT Bangalore',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:18},{employee_id:53,college:'IIIT Bangalore',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:17},{employee_id:54,college:'IIIT Bangalore',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:16},{employee_id:55,college:'IIIT Bangalore',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:7},{employee_id:56,college:'VIT Vellore',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:6},{employee_id:57,college:'VIT Vellore',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:10},{employee_id:58,college:'VIT Vellore',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:10},{employee_id:59,college:'SRM University',company_department:'Product','PPO/PPI Offered':'Yes',number_of_months_in_the_company:8},{employee_id:60,college:'SRM University',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:9},{employee_id:61,college:'SRM University',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:6},{employee_id:62,college:'SRM University',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:18},{employee_id:63,college:'SRM University',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:7},{employee_id:64,college:'SRM University',company_department:'Product','PPO/PPI Offered':'Yes',number_of_months_in_the_company:10},{employee_id:65,college:'Manipal Institute of Technology',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:15},{employee_id:66,college:'Manipal Institute of Technology',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:16},{employee_id:67,college:'Manipal Institute of Technology',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:11},{employee_id:68,college:'Manipal Institute of Technology',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:13},{employee_id:69,college:'Manipal Institute of Technology',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:13},{employee_id:70,college:'Christ University',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:4},{employee_id:71,college:'Christ University',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:11},{employee_id:72,college:'Christ University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:8},{employee_id:73,college:'Christ University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:18},{employee_id:74,college:'Christ University',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:11},{employee_id:75,college:'Christ University',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:4},{employee_id:76,college:'NMIMS Mumbai',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:15},{employee_id:77,college:'NMIMS Mumbai',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:8},{employee_id:78,college:'NMIMS Mumbai',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:18},{employee_id:79,college:'NMIMS Mumbai',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:7},{employee_id:80,college:'NMIMS Mumbai',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:7},{employee_id:81,college:'Symbiosis Pune',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:14},{employee_id:82,college:'Symbiosis Pune',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:11},{employee_id:83,college:'Symbiosis Pune',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:4},{employee_id:84,college:'Symbiosis Pune',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:13},{employee_id:85,college:'Symbiosis Pune',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:7},{employee_id:86,college:'Symbiosis Pune',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:5},{employee_id:87,college:'Delhi University',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:5},{employee_id:88,college:'Delhi University',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:4},{employee_id:89,college:'Delhi University',company_department:'Software','PPO/PPI Offered':'No',number_of_months_in_the_company:8},{employee_id:90,college:'Delhi University',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:6},{employee_id:91,college:'Delhi University',company_department:'Finance','PPO/PPI Offered':'No',number_of_months_in_the_company:12},{employee_id:92,college:'Delhi University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:11},{employee_id:93,college:'Mumbai University',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:5},{employee_id:94,college:'Mumbai University',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:11},{employee_id:95,college:'Mumbai University',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:17},{employee_id:96,college:'Mumbai University',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:11},{employee_id:97,college:'Anna University',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:15},{employee_id:98,college:'Anna University',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:18},{employee_id:99,college:'Anna University',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:14},{employee_id:100,college:'Jadavpur University',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:18},{employee_id:101,college:'Jadavpur University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:5},{employee_id:102,college:'Jadavpur University',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:6},{employee_id:103,college:'Osmania University',company_department:'Sales','PPO/PPI Offered':'No',number_of_months_in_the_company:5},{employee_id:104,college:'Osmania University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:16},{employee_id:105,college:'Osmania University',company_department:'Product','PPO/PPI Offered':'Yes',number_of_months_in_the_company:17},{employee_id:106,college:'Calcutta University',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:17},{employee_id:107,college:'Calcutta University',company_department:'Product','PPO/PPI Offered':'Yes',number_of_months_in_the_company:18},{employee_id:108,college:'Calcutta University',company_department:'HR','PPO/PPI Offered':'Yes',number_of_months_in_the_company:9},{employee_id:109,college:'Pune University',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:17},{employee_id:110,college:'Pune University',company_department:'Product','PPO/PPI Offered':'Yes',number_of_months_in_the_company:5},{employee_id:111,college:'Pune University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:14},{employee_id:112,college:'Pune University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:5},{employee_id:113,college:'Pune University',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:8},{employee_id:114,college:'Pune University',company_department:'Sales','PPO/PPI Offered':'Yes',number_of_months_in_the_company:12},{employee_id:115,college:'Jamia Millia Islamia',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:12},{employee_id:116,college:'Jamia Millia Islamia',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:13},{employee_id:117,college:'Jamia Millia Islamia',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:9},{employee_id:118,college:'Aligarh Muslim University',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:14},{employee_id:119,college:'Aligarh Muslim University',company_department:'Product','PPO/PPI Offered':'No',number_of_months_in_the_company:11},{employee_id:120,college:'Aligarh Muslim University',company_department:'Software','PPO/PPI Offered':'Yes',number_of_months_in_the_company:10},{employee_id:121,college:'Aligarh Muslim University',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:15},{employee_id:122,college:'Aligarh Muslim University',company_department:'Finance','PPO/PPI Offered':'Yes',number_of_months_in_the_company:15},{employee_id:123,college:'Aligarh Muslim University',company_department:'HR','PPO/PPI Offered':'No',number_of_months_in_the_company:6},
+  ];
+  document.getElementById('college-name').textContent = 'india_story_college_data.xlsx';
+  document.getElementById('employee-name').textContent = 'india_story_employee_data.xlsx';
+  document.getElementById('zone-college').classList.add('has-file');
+  document.getElementById('zone-employee').classList.add('has-file');
+  document.getElementById('btn-generate').disabled = false;
+  toast('Sample data loaded — tap Generate');
+}
+
+// ═══════════════════════════════════════════════════
+// PIPELINE
+// ═══════════════════════════════════════════════════
+function canonicalizeRow(row) {
+  const out = {};
+  for (const [k,v] of Object.entries(row)) out[canonCol(k)] = v;
+  return out;
+}
+
+function buildPipeline(collegeRaw, employeeRaw) {
+  const colleges  = collegeRaw.map(canonicalizeRow);
+  const employees = employeeRaw.map(canonicalizeRow);
+
+  const ctcVals = colleges.map(r => parseFloat(r.average_ctc_offered)).filter(v => !isNaN(v));
+  const ctcMed  = [...ctcVals].sort((a,b)=>a-b)[Math.floor(ctcVals.length/2)];
+  const ctcScale = ctcMed > 1000 ? 1/100000 : 1;
+
+  const collegeMap = {};
+  for (const r of colleges) {
+    const key = cleanText(r.college);
+    if (!collegeMap[key]) collegeMap[key] = {
+      college: key, displayName: String(r.college||'').trim(),
+      tier: cleanText(r.college_tier),
+      apps:0, roles:0, shortlisted:0, interviewed:0, offers:0,
+      accepted:0, declined:0, ppi_offered:0, ppi_accepted:0, ppo_offered:0, ppo_accepted:0,
+      rating_sum:0, rating_n:0, ctc_sum:0, ctc_n:0
+    };
+    const m = collegeMap[key];
+    const n = v => isNaN(parseFloat(v)) ? 0 : parseFloat(v);
+    m.apps        += n(r.applications_received_from_each_campus);
+    m.roles       += n(r.roles_opened_for_each_campus);
+    m.shortlisted += n(r.shortlisted);
+    m.interviewed += n(r.interviewed);
+    m.offers      += n(r.offers);
+    m.accepted    += n(r.accepted);
+    m.declined    += n(r.declined);
+    m.ppi_offered += n(r.ppi_offered); m.ppi_accepted += n(r.ppi_accepted);
+    m.ppo_offered += n(r.ppo_offered); m.ppo_accepted += n(r.ppo_accepted);
+    if (!isNaN(parseFloat(r.aggregate_manager_rating))) { m.rating_sum += parseFloat(r.aggregate_manager_rating); m.rating_n++; }
+    const cr = parseFloat(r.average_ctc_offered);
+    if (!isNaN(cr)) { m.ctc_sum += cr * ctcScale; m.ctc_n++; }
+  }
+
+  const empMap = {};
+  for (const r of employees) {
+    const key = cleanText(r.college);
+    if (!empMap[key]) empMap[key] = { count:0, early_attrition:0, tenure_total:0 };
+    empMap[key].count++;
+    const mo = parseFloat(r.number_of_months_in_the_company);
+    if (!isNaN(mo)) { empMap[key].tenure_total += mo; if (mo < 6) empMap[key].early_attrition++; }
+  }
+
+  let matched = 0, matchedColleges = 0;
+  for (const key of Object.keys(collegeMap)) { if (empMap[key]) { matchedColleges++; matched += empMap[key].count; } }
+
+  const summary = Object.values(collegeMap).map(m => ({
+    ...m, avg_rating: m.rating_n ? m.rating_sum/m.rating_n : 0, avg_ctc: m.ctc_n ? m.ctc_sum/m.ctc_n : 0
+  }));
+
+  const metrics = summary.map(m => {
+    const emp = empMap[m.college] || { count:0, early_attrition:0, tenure_total:0 };
+    const acceptance_rate = safeDivide(m.accepted, m.offers);
+    const decline_rate    = safeDivide(m.declined, m.offers);
+    const intern_conv     = safeDivide(m.ppi_accepted+m.ppo_accepted, m.ppi_offered+m.ppo_offered);
+    const attrition_rate  = safeDivide(emp.early_attrition, emp.count);
+    const cost_eff_raw    = m.avg_ctc > 0 ? 1/m.avg_ctc : 0;
+    return { ...m, emp_count:emp.count, early_attrition:emp.early_attrition,
+      avg_tenure: emp.count > 0 ? emp.tenure_total/emp.count : 0,
+      acceptance_rate, decline_rate, intern_conv, attrition_rate, cost_eff_raw,
+      cost_per_hire: safeDivide(m.avg_ctc, acceptance_rate) };
+  });
+
+  const rN=normalize(metrics.map(m=>m.avg_rating)), aN=normalize(metrics.map(m=>m.acceptance_rate)),
+        iN=normalize(metrics.map(m=>m.intern_conv)), cN=normalize(metrics.map(m=>m.cost_eff_raw)),
+        atN=normalize(metrics.map(m=>m.attrition_rate)), maxE=Math.max(...metrics.map(m=>m.emp_count),1);
+  metrics.forEach((m,i) => {
+    m.performance_score = Math.max(0, 0.40*rN[i]+0.25*aN[i]+0.15*iN[i]+0.20*cN[i]-0.15*atN[i])*100;
+    m.confidence_score  = Math.min(100,(0.45*(Math.log1p(m.emp_count)/Math.log1p(maxE))+0.55*(1-atN[i]))*100);
+    m.roi_raw           = safeDivide(1-m.attrition_rate, m.avg_ctc||1);
+  });
+  const rоiN = normalize(metrics.map(m=>m.roi_raw));
+  metrics.forEach((m,i) => { m.roi_score = rоiN[i]*100; });
+  metrics.sort((a,b) => b.performance_score - a.performance_score);
+
+  const depts = [...new Set(employees.map(e=>cleanText(e.company_department)).filter(d=>d&&d!=='unknown'))].sort();
+  return { metrics, summary, employees, linkStatus:{matched,matchedColleges,total:Object.keys(collegeMap).length}, depts };
+}
+
+// ═══════════════════════════════════════════════════
+// GENERATE & FILTERS
+// ═══════════════════════════════════════════════════
+function generate() {
+  try {
+    const r = buildPipeline(STATE.collegeRaw, STATE.employeeRaw);
+    Object.assign(STATE, { metrics:r.metrics, summary:r.summary, employees:r.employees,
+      linkStatus:r.linkStatus, depts:r.depts,
+      filters:{ tiers:[...new Set(r.metrics.map(m=>m.tier))].sort(), dept:'' },
+      activeTiers:new Set([...new Set(r.metrics.map(m=>m.tier))]),
+      activeColleges:new Set(r.metrics.map(m=>m.college)),
+      activeDept:'', compareSet:new Set() });
+    buildFilterUI(); showDashboard(); renderAll(); toast('Dashboard ready');
+  } catch(e) { toast('Error: ' + e.message); console.error(e); }
+}
+
+const getFilteredMetrics = () => STATE.metrics.filter(m =>
+  (STATE.activeTiers.size===0 || STATE.activeTiers.has(m.tier)) &&
+  (!STATE.activeColleges || STATE.activeColleges.size===0 || STATE.activeColleges.has(m.college)) &&
+  (!STATE.activeDept || (STATE.employees||[]).some(e=>cleanText(e.college)===m.college && cleanText(e.company_department)===STATE.activeDept))
+);
+const getFilteredSummary = fm => { const keys=new Set(fm.map(m=>m.college)); return STATE.summary.filter(s=>keys.has(s.college)); };
+
+function buildFilterUI() {
+  // Tier chips
+  const el = document.getElementById('tier-chips');
+  el.innerHTML = '';
+  STATE.filters.tiers.forEach(tier => {
+    const c = document.createElement('div');
+    c.className = 'filter-chip active'; c.textContent = tier.replace(/\b\w/g,x=>x.toUpperCase());
+    c.dataset.tier = tier;
+    c.onclick = () => { if(STATE.activeTiers.has(tier)){STATE.activeTiers.delete(tier);c.classList.remove('active');}else{STATE.activeTiers.add(tier);c.classList.add('active');} buildCollegeFilterUI(); };
+    el.appendChild(c);
+  });
+
+  // College list (checkboxes)
+  STATE.activeColleges = new Set(STATE.metrics.map(m => m.college));
+  buildCollegeFilterUI();
+
+  // Dept select
+  const ds = document.getElementById('dept-select');
+  ds.innerHTML = '<option value="">All departments</option>';
+  STATE.depts.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d.replace(/\b\w/g,x=>x.toUpperCase()); ds.appendChild(o); });
+}
+
+function buildCollegeFilterUI() {
+  const list = document.getElementById('college-filter-list');
+  if (!list) return;
+  // Only show colleges that match currently active tiers
+  const visible = STATE.metrics.filter(m => STATE.activeTiers.size === 0 || STATE.activeTiers.has(m.tier));
+  if (!STATE.activeColleges) STATE.activeColleges = new Set(STATE.metrics.map(m => m.college));
+  list.innerHTML = visible.map(m => {
+    const checked = STATE.activeColleges.has(m.college);
+    return `<label style="display:flex;align-items:center;gap:0.55rem;padding:0.3rem 0.1rem;cursor:pointer;font-size:0.8rem;color:var(--text2)">
+      <input type="checkbox" value="${m.college}" ${checked?'checked':''} onchange="toggleCollegeFilter(this)"
+        style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">
+      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.displayName}</span>
+      <span style="margin-left:auto;font-size:0.65rem;color:var(--muted);flex-shrink:0;font-family:'JetBrains Mono',monospace">${m.tier.replace('tier ','T')}</span>
+    </label>`;
+  }).join('');
+  // Update toggle button label
+  const btn = document.getElementById('btn-college-toggle');
+  if (btn) {
+    const visibleKeys = visible.map(m => m.college);
+    const allSelected = visibleKeys.every(k => STATE.activeColleges.has(k));
+    btn.textContent = allSelected ? 'Deselect all' : 'Select all';
+  }
+}
+
+function toggleCollegeFilter(checkbox) {
+  if (checkbox.checked) STATE.activeColleges.add(checkbox.value);
+  else STATE.activeColleges.delete(checkbox.value);
+  const btn = document.getElementById('btn-college-toggle');
+  if (btn) {
+    const visible = STATE.metrics.filter(m => STATE.activeTiers.size === 0 || STATE.activeTiers.has(m.tier));
+    const allSelected = visible.every(m => STATE.activeColleges.has(m.college));
+    btn.textContent = allSelected ? 'Deselect all' : 'Select all';
+  }
+}
+
+function toggleAllColleges() {
+  const visible = STATE.metrics.filter(m => STATE.activeTiers.size === 0 || STATE.activeTiers.has(m.tier));
+  const allSelected = visible.every(m => STATE.activeColleges.has(m.college));
+  visible.forEach(m => { if (allSelected) STATE.activeColleges.delete(m.college); else STATE.activeColleges.add(m.college); });
+  buildCollegeFilterUI();
+}
+
+function applyFilters() { STATE.activeDept = document.getElementById('dept-select').value; renderAll(); }
+function toggleFilterPanel() {
+  const p=document.getElementById('filter-panel'), d=document.getElementById('screen-dashboard'), b=document.getElementById('btn-filter');
+  if(p.style.display==='none'){ p.style.display='block'; d.style.display='none'; b.classList.add('active'); }
+  else hideFilterPanel();
+}
+function hideFilterPanel() {
+  document.getElementById('filter-panel').style.display='none';
+  document.getElementById('screen-dashboard').style.display='block';
+  document.getElementById('btn-filter').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════
+// SCREENS & TABS
+// ═══════════════════════════════════════════════════
+function showDashboard() {
+  document.getElementById('screen-upload').style.display='none';
+  document.getElementById('screen-dashboard').style.display='block';
+  document.getElementById('btn-upload-again').style.display='flex';
+}
+function showUpload() {
+  document.getElementById('screen-upload').style.display='block';
+  document.getElementById('screen-dashboard').style.display='none';
+  document.getElementById('filter-panel').style.display='none';
+  document.getElementById('btn-upload-again').style.display='none';
+}
+function showTab(name) {
+  ['overview','funnel','rankings','simulator','insights'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===name?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active', el.textContent.toLowerCase().startsWith(name.substring(0,4))));
+  STATE.currentTab = name;
+  if(name==='rankings') renderRankingsChart();
+  if(name==='simulator'){ updateEstimator(); updateROI(); renderRadar(); }
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════
+function renderAll() {
+  const fm=getFilteredMetrics(), fs=getFilteredSummary(fm);
+  renderLinkStatus(); renderKPI(fm,fs); renderFunnel(fs); renderScatter(fm);
+  renderRecommendations(fm); renderRankingsTable(fm); renderInsights(fm,fs);
+  populateSimulatorSelects(fm); populateCompareChips(fm);
+  if(STATE.currentTab==='rankings') renderRankingsChart();
+  if(STATE.currentTab==='simulator'){ updateEstimator(); updateROI(); renderRadar(); }
+}
+
+function renderLinkStatus() {
+  const ls=STATE.linkStatus;
+  document.getElementById('link-status').innerHTML =
+    `<div class="status-bar">✓ Matched <strong>${ls.matched}</strong> employees across <strong>${ls.matchedColleges}</strong> of ${ls.total} colleges.</div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// KPI
+// ═══════════════════════════════════════════════════
+function renderKPI(fm, fs) {
+  const tOff=fs.reduce((s,r)=>s+r.offers,0), tAcc=fs.reduce((s,r)=>s+r.accepted,0),
+        tEmp=fm.reduce((s,m)=>s+m.emp_count,0), tAttr=fm.reduce((s,m)=>s+m.early_attrition,0);
+  const medCTC=[...fm].sort((a,b)=>a.avg_ctc-b.avg_ctc)[Math.floor(fm.length/2)]?.avg_ctc||0;
+  const cards=[
+    ['Colleges',`${fm.length}`,'In view'],
+    ['Offers',`${tOff.toLocaleString()}`,'Total issued'],
+    ['Accept Rate',fmtPct(safeDivide(tAcc,tOff)),'Offer-to-join'],
+    ['Attrition',fmtPct(safeDivide(tAttr,tEmp)),'< 6 months'],
+    ['Median CTC',fmtCTC(medCTC),'Benchmark'],
+  ];
+  document.getElementById('kpi-grid').innerHTML = cards.map(([l,v,s])=>`
+    <div class="kpi-card">
+      <div class="kpi-label">${l}</div>
+      <div class="kpi-value">${v}</div>
+      <div class="kpi-sub">${s}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// FUNNEL
+// ═══════════════════════════════════════════════════
+function renderFunnel(fs) {
+  const stages=[
+    ['Applications',fs.reduce((s,r)=>s+r.apps,0)],
+    ['Shortlisted', fs.reduce((s,r)=>s+r.shortlisted,0)],
+    ['Interviewed', fs.reduce((s,r)=>s+r.interviewed,0)],
+    ['Offers',      fs.reduce((s,r)=>s+r.offers,0)],
+    ['Accepted',    fs.reduce((s,r)=>s+r.accepted,0)],
+  ];
+  const maxV=stages[0][1]||1;
+  const colors=['#7c5cfc','#6040d4','#4e30b0','#3a2288','#261460'];
+  document.getElementById('funnel-bars').innerHTML = stages.map(([label,val],i)=>{
+    const pct=Math.round(safeDivide(val,maxV)*100);
+    const conv=i>0?` ${Math.round(safeDivide(val,stages[i-1][1])*100)}%`:'';
+    return `<div class="funnel-row">
+      <div class="funnel-label">${label}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${pct}%;background:${colors[i]}">
+          <span>${val.toLocaleString()}</span>
+        </div>
+      </div>
+      <div class="funnel-pct">${conv}</div>
+    </div>`;
+  }).join('');
+
+  destroyChart('funnel');
+  const ctx=document.getElementById('chart-funnel').getContext('2d');
+  STATE.charts.funnel=new Chart(ctx,{
+    type:'bar',
+    data:{labels:stages.map(s=>s[0]),datasets:[{data:stages.map(s=>s[1]),backgroundColor:colors,borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw.toLocaleString()}`}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7585',font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7585',font:{size:10}}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// SCATTER
+// ═══════════════════════════════════════════════════
+function renderScatter(fm) {
+  destroyChart('scatter');
+  const data=fm.filter(m=>m.avg_ctc>0).map(m=>({
+    x:parseFloat(m.avg_ctc.toFixed(2)), y:parseFloat((m.acceptance_rate*100).toFixed(1)),
+    r:Math.max(5,Math.min(20,m.emp_count*1.5)), label:m.displayName, score:m.performance_score
+  }));
+  const maxS=Math.max(...data.map(d=>d.score),1);
+  STATE.charts.scatter=new Chart(document.getElementById('chart-scatter').getContext('2d'),{
+    type:'bubble',
+    data:{datasets:[{data,backgroundColor:data.map(d=>`hsla(258,${60+d.score/maxS*25}%,${42+d.score/maxS*20}%,0.82)`),borderColor:'rgba(0,0,0,0)'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw.label}: ${c.raw.x.toFixed(1)} LPA · ${c.raw.y}% accept`}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7585',font:{size:10}},title:{display:true,text:'CTC (LPA)',color:'#6b7585',font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7585',font:{size:10}},title:{display:true,text:'Accept %',color:'#6b7585',font:{size:10}}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// RECOMMENDATIONS
+// ═══════════════════════════════════════════════════
+function renderRecommendations(fm) {
+  document.getElementById('recommendations').innerHTML = fm.slice(0,5).map((m,i)=>`
+    <div class="rec-card">
+      <div class="rec-rank">${i+1}</div>
+      <div class="rec-body">
+        <div class="rec-name">${m.displayName}</div>
+        <div class="rec-stats">
+          <div class="rec-stat">Score <span>${fmt(m.performance_score)}</span></div>
+          <div class="rec-stat">Accept <span>${fmtPct(m.acceptance_rate)}</span></div>
+          <div class="rec-stat">Attr <span>${fmtPct(m.attrition_rate)}</span></div>
+          <div class="rec-stat">CTC <span>${fmtCTC(m.avg_ctc)}</span></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// RANKINGS
+// ═══════════════════════════════════════════════════
+function renderRankingsTable(fm) {
+  document.getElementById('rankings-tbody').innerHTML = fm.map((m,i)=>`
+    <tr>
+      <td><span class="rank-badge">${i+1}</span></td>
+      <td style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.displayName}</td>
+      <td><span class="tier-badge">${m.tier.replace('tier ','T')}</span></td>
+      <td>${fmt(m.performance_score)}</td>
+      <td>${fmt(m.confidence_score,0)}%</td>
+      <td>${fmtPct(m.acceptance_rate)}</td>
+      <td>${fmtPct(m.attrition_rate)}</td>
+      <td>${fmtCTC(m.avg_ctc)}</td>
+    </tr>`).join('');
+}
+
+function renderRankingsChart() {
+  const fm=getFilteredMetrics().slice(0,12);
+  destroyChart('rankings');
+  STATE.charts.rankings=new Chart(document.getElementById('chart-rankings').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:fm.map(m=>m.displayName.length>16?m.displayName.substring(0,16)+'…':m.displayName),
+      datasets:[{data:fm.map(m=>+m.performance_score.toFixed(1)),
+        backgroundColor:fm.map(m=>`hsla(258,${55+m.confidence_score/2.5}%,${35+m.performance_score/6}%,0.92)`),
+        borderRadius:6,borderSkipped:false}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`Score: ${c.raw}`}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7585',font:{size:10}}},
+        y:{grid:{display:false},ticks:{color:'#c8cdd6',font:{size:10}}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// SIMULATOR
+// ═══════════════════════════════════════════════════
+function populateSimulatorSelects(fm) {
+  ['estimator-college','roi-college'].forEach(id=>{
+    const sel=document.getElementById(id), cur=sel.value;
+    sel.innerHTML=fm.map(m=>`<option value="${m.college}">${m.displayName}</option>`).join('');
+    if(fm.find(m=>m.college===cur)) sel.value=cur;
+  });
+}
+
+function updateEstimator() {
+  const fm=getFilteredMetrics(), key=document.getElementById('estimator-college').value;
+  const m=fm.find(x=>x.college===key)||fm[0]; if(!m)return;
+  document.getElementById('estimator-cards').innerHTML=[
+    ['Accept Rate',fmtPct(m.acceptance_rate),'Historical'],
+    ['Attrition',fmtPct(m.attrition_rate),'< 6 months'],
+    ['Avg CTC',fmtCTC(m.avg_ctc),'Compensation'],
+    ['Score',fmt(m.performance_score),'Performance'],
+  ].map(([l,v,s])=>`<div class="kpi-card"><div class="kpi-label">${l}</div><div class="kpi-value">${v}</div><div class="kpi-sub">${s}</div></div>`).join('');
+
+  destroyChart('gauge');
+  const val=Math.min(m.performance_score,100);
+  STATE.charts.gauge=new Chart(document.getElementById('chart-gauge').getContext('2d'),{
+    type:'doughnut',
+    data:{datasets:[{data:[val,100-val],backgroundColor:['var(--accent)','rgba(255,255,255,0.05)'],borderWidth:0,circumference:180,rotation:270}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
+  });
+  document.getElementById('gauge-caption').innerHTML=`<strong style="color:var(--accent);font-size:1.35rem;font-family:'Space Grotesk',sans-serif">${fmt(m.performance_score)}</strong><br><span style="font-size:0.72rem">Success score · ${fmt(m.confidence_score,0)}% confidence</span>`;
+}
+
+function updateROI() {
+  const fm=getFilteredMetrics(), key=document.getElementById('roi-college').value;
+  const m=fm.find(x=>x.college===key)||fm[0]; if(!m)return;
+  const offers=parseInt(document.getElementById('roi-offers').value)||20;
+  const budget=parseFloat(document.getElementById('roi-budget').value)||60;
+  const expAcc=offers*m.acceptance_rate, expAttr=expAcc*m.attrition_rate;
+  const retained=expAcc*(1-m.attrition_rate), spend=expAcc*m.avg_ctc, gap=budget-spend;
+  document.getElementById('roi-cards').innerHTML=[
+    ['Acceptances',fmt(expAcc),'Expected'],
+    ['Attrition',fmt(expAttr),'Early exits'],
+    ['Cost/Hire',fmtCTC(m.cost_per_hire),'CTC÷Accept'],
+    ['ROI Score',fmt(m.roi_score),'Normalised'],
+  ].map(([l,v,s])=>`<div class="kpi-card"><div class="kpi-label">${l}</div><div class="kpi-value">${v}</div><div class="kpi-sub">${s}</div></div>`).join('');
+  document.getElementById('roi-note').innerHTML=`Projected spend <strong>${fmtCTC(spend)}</strong> — <strong>${Math.abs(gap).toFixed(1)} LPA ${gap>=0?'under':'over'} budget</strong>. Expecting <strong>${fmt(retained)} retained hires</strong>.`;
+}
+
+// ═══════════════════════════════════════════════════
+// COMPARE
+// ═══════════════════════════════════════════════════
+function populateCompareChips(fm) {
+  document.getElementById('compare-chips').innerHTML=fm.map(m=>`
+    <div class="filter-chip${STATE.compareSet.has(m.college)?' active':''}" onclick="toggleCompare('${m.college}')">${m.displayName}</div>`).join('');
+}
+function toggleCompare(key) {
+  if(STATE.compareSet.has(key)){STATE.compareSet.delete(key);}
+  else if(STATE.compareSet.size<3){STATE.compareSet.add(key);}
+  else{toast('Max 3 colleges');return;}
+  populateCompareChips(getFilteredMetrics()); renderRadar(); renderCompareTable();
+}
+function renderRadar() {
+  const fm=getFilteredMetrics();
+  const sel=[...STATE.compareSet].map(k=>fm.find(m=>m.college===k)).filter(Boolean);
+  destroyChart('radar');
+  if(sel.length<2){ document.getElementById('compare-tbody').innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1rem">Select 2–3 colleges above</td></tr>'; return; }
+  const colors=['var(--accent)','#e05a5a','#5a9ee0'];
+  STATE.charts.radar=new Chart(document.getElementById('chart-radar').getContext('2d'),{
+    type:'radar',
+    data:{
+      labels:['Accept','Rating','Retention','Cost Eff.','ROI'],
+      datasets:sel.map((m,i)=>({label:m.displayName,
+        data:[m.acceptance_rate*100,m.avg_rating/5*100,(1-m.attrition_rate)*100,Math.min(100,m.cost_eff_raw*200),m.roi_score],
+        backgroundColor:colors[i]+'28',borderColor:colors[i],borderWidth:2.5,pointRadius:3,pointBackgroundColor:colors[i]}))
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#c8cdd6',font:{size:10},boxWidth:10}}},
+      scales:{r:{backgroundColor:'rgba(0,0,0,0)',grid:{color:'rgba(255,255,255,0.06)'},angleLines:{color:'rgba(255,255,255,0.06)'},
+        ticks:{color:'#6b7585',backdropColor:'transparent',font:{size:8}},pointLabels:{color:'#c8cdd6',font:{size:10}}}}}
+  });
+  renderCompareTable();
+}
+function renderCompareTable() {
+  const fm=getFilteredMetrics();
+  const sel=[...STATE.compareSet].map(k=>fm.find(m=>m.college===k)).filter(Boolean);
+  document.getElementById('compare-tbody').innerHTML=sel.map(m=>`
+    <tr><td>${m.displayName}</td><td>${fmtPct(m.acceptance_rate)}</td><td>${fmtPct(m.attrition_rate)}</td><td>${fmtCTC(m.avg_ctc)}</td><td>${fmt(m.roi_score)}</td></tr>`
+  ).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1rem">Select 2–3 colleges</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════
+// INSIGHTS
+// ═══════════════════════════════════════════════════
+function renderInsights(fm, fs) {
+  const ins=[];
+  if(!fm.length){document.getElementById('insights-list').innerHTML='<div class="insight-item">No data.</div>';return;}
+  const top=fm[0];
+  ins.push(`<strong>${top.displayName}</strong> leads with a performance score of <strong>${fmt(top.performance_score)}</strong> and <strong>${fmt(top.confidence_score,0)}%</strong> confidence.`);
+  const tiers=[...new Set(fm.map(m=>m.tier))];
+  if(tiers.length>1){
+    const ta=tiers.map(t=>({t,avg:fm.filter(m=>m.tier===t).reduce((s,m)=>s+m.performance_score,0)/fm.filter(m=>m.tier===t).length})).sort((a,b)=>b.avg-a.avg);
+    ins.push(`<strong>${ta[0].t.replace(/\b\w/g,c=>c.toUpperCase())}</strong> colleges average the strongest performance at <strong>${fmt(ta[0].avg)}</strong>.`);
+  }
+  const stages=[[fs.reduce((s,r)=>s+r.apps,0),fs.reduce((s,r)=>s+r.shortlisted,0),'Application → Shortlist'],[fs.reduce((s,r)=>s+r.shortlisted,0),fs.reduce((s,r)=>s+r.interviewed,0),'Shortlist → Interview'],[fs.reduce((s,r)=>s+r.interviewed,0),fs.reduce((s,r)=>s+r.offers,0),'Interview → Offer'],[fs.reduce((s,r)=>s+r.offers,0),fs.reduce((s,r)=>s+r.accepted,0),'Offer → Accept']].map(([a,b,l])=>({label:l,rate:safeDivide(b,a)}));
+  const worst=stages.sort((a,b)=>a.rate-b.rate)[0];
+  ins.push(`Biggest funnel drag: <strong>${worst.label}</strong> at <strong>${fmtPct(worst.rate)}</strong>.`);
+  const hd=[...fm].sort((a,b)=>b.decline_rate-a.decline_rate)[0];
+  if(hd) ins.push(`<strong>${hd.displayName}</strong> has the highest decline rate at <strong>${fmtPct(hd.decline_rate)}</strong> — review offer timing or compensation.`);
+  const avgA=fm.reduce((s,m)=>s+m.attrition_rate,0)/fm.length;
+  ins.push(`Average early attrition across ${fm.length} colleges is <strong>${fmtPct(avgA)}</strong>. Colleges below this are your retention anchors.`);
+  document.getElementById('insights-list').innerHTML=ins.map(t=>`<div class="insight-item">${t}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════
+['zone-college','zone-employee'].forEach(id=>{
+  const el=document.getElementById(id), type=id.includes('college')?'college':'employee';
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('dragover');});
+  el.addEventListener('dragleave',()=>el.classList.remove('dragover'));
+  el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleFile(type,{files:[f]});});
+});
+
+// ═══════════════════════════════════════════════════
+// SERVICE WORKER REGISTRATION
+// ═══════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[SW] Registered, scope:', reg.scope))
+      .catch(err => console.warn('[SW] Registration failed:', err.message));
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// INSTALL PROMPT
+// ═══════════════════════════════════════════════════
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  setTimeout(() => showInstallBanner(), 2000);
+});
+
+function showInstallBanner() {
+  if (document.getElementById('install-banner')) return;
+  const b = document.createElement('div');
+  b.id = 'install-banner';
+  b.style.cssText = `position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);background:#1a1d24;border:1px solid rgba(124,92,252,0.3);border-left:3px solid var(--accent);border-radius:14px;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.75rem;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.6);max-width:88vw;backdrop-filter:blur(10px)`;
+  b.innerHTML = `<span style="font-size:1.2rem">📲</span><span style="font-size:0.82rem;color:#f0f2f5;line-height:1.4"><strong style="color:var(--accent)">Add to Home Screen</strong><br>Works offline like a native app</span><button onclick="window.__pwaInstall()" style="background:linear-gradient(135deg,var(--accent),#6040d4);color:#ffffff;border:none;border-radius:8px;padding:0.45rem 0.9rem;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;font-family:inherit">Install</button><button onclick="this.closest('#install-banner').remove()" style="background:none;border:none;color:#6b7585;font-size:1rem;cursor:pointer;padding:0.1rem 0.2rem">✕</button>`;
+  document.body.appendChild(b);
+}
+window.__pwaInstall = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome==='accepted') { document.getElementById('install-banner')?.remove(); toast('Installed! Check your home screen.'); }
+  deferredPrompt = null;
+};
+
+// iOS Safari hint
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+if (isIOS && !window.navigator.standalone) {
+  setTimeout(() => {
+    if (document.getElementById('install-banner')) return;
+    const h = document.createElement('div');
+    h.id = 'install-banner';
+    h.style.cssText = `position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);background:#1a1d24;border:1px solid rgba(124,92,252,0.3);border-left:3px solid var(--accent);border-radius:14px;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.75rem;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.6);max-width:86vw`;
+    h.innerHTML = `<span style="font-size:1.2rem">📲</span><span style="font-size:0.8rem;color:#f0f2f5;line-height:1.45"><strong style="color:var(--accent)">Add to Home Screen</strong><br>Tap <strong>Share ↑</strong> → <strong>Add to Home Screen</strong></span><button onclick="this.closest('#install-banner').remove()" style="background:none;border:none;color:#6b7585;font-size:1rem;cursor:pointer;padding:0.1rem 0.2rem">✕</button>`;
+    document.body.appendChild(h);
+  }, 3500);
+}
+</script>
+</body>
+</html>
