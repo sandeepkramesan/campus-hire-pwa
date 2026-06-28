@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0b0d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1293,8 +1293,26 @@ function showInstallBanner() {
   if (document.getElementById('install-banner')) return;
   const b = document.createElement('div');
   b.id = 'install-banner';
-  b.style.cssText = `position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);background:#1a1d24;border:1px solid rgba(124,92,252,0.3);border-left:3px solid var(--accent);border-radius:14px;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.75rem;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.6);max-width:88vw;backdrop-filter:blur(10px)`;
-  b.innerHTML = `<span style="font-size:1.2rem">📲</span><span style="font-size:0.82rem;color:#f0f2f5;line-height:1.4"><strong style="color:var(--accent)">Add to Home Screen</strong><br>Works offline like a native app</span><button onclick="window.__pwaInstall()" style="background:linear-gradient(135deg,var(--accent),#6040d4);color:#ffffff;border:none;border-radius:8px;padding:0.45rem 0.9rem;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;font-family:inherit">Install</button><button onclick="this.closest('#install-banner').remove()" style="background:none;border:none;color:#6b7585;font-size:1rem;cursor:pointer;padding:0.1rem 0.2rem">✕</button>`;
+  b.style.cssText = [
+    'position:fixed',
+    'bottom:calc(env(safe-area-inset-bottom, 0px) + 72px)',
+    'left:50%',
+    'transform:translateX(-50%)',
+    'width:min(88vw, 420px)',
+    'background:#1a1d24',
+    'border:1px solid rgba(124,92,252,0.3)',
+    'border-left:3px solid #7c5cfc',
+    'border-radius:14px',
+    'padding:0.75rem 1rem',
+    'display:flex',
+    'align-items:center',
+    'gap:0.75rem',
+    'z-index:99999',
+    'box-shadow:0 -2px 0 rgba(124,92,252,0.15), 0 16px 48px rgba(0,0,0,0.7)',
+    'backdrop-filter:blur(12px)',
+    '-webkit-backdrop-filter:blur(12px)',
+  ].join(';');
+  b.innerHTML = `<span style="font-size:1.2rem;flex-shrink:0">📲</span><span style="font-size:0.82rem;color:#f0f2f5;line-height:1.4;flex:1"><strong style="color:#7c5cfc">Add to Home Screen</strong><br>Works offline like a native app</span><button onclick="window.__pwaInstall()" style="background:linear-gradient(135deg,#7c5cfc,#6040d4);color:#fff;border:none;border-radius:8px;padding:0.45rem 0.9rem;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0">Install</button><button onclick="document.getElementById('install-banner').remove()" style="background:none;border:none;color:#6b7585;font-size:1.1rem;cursor:pointer;padding:0 0.2rem;flex-shrink:0;line-height:1">✕</button>`;
   document.body.appendChild(b);
 }
 window.__pwaInstall = async () => {
@@ -1312,7 +1330,23 @@ if (isIOS && !window.navigator.standalone) {
     if (document.getElementById('install-banner')) return;
     const h = document.createElement('div');
     h.id = 'install-banner';
-    h.style.cssText = `position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);background:#1a1d24;border:1px solid rgba(124,92,252,0.3);border-left:3px solid var(--accent);border-radius:14px;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.75rem;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.6);max-width:86vw`;
+    h.style.cssText = [
+      'position:fixed',
+      'bottom:calc(env(safe-area-inset-bottom, 0px) + 72px)',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'width:min(86vw, 400px)',
+      'background:#1a1d24',
+      'border:1px solid rgba(124,92,252,0.3)',
+      'border-left:3px solid #7c5cfc',
+      'border-radius:14px',
+      'padding:0.75rem 1rem',
+      'display:flex',
+      'align-items:center',
+      'gap:0.75rem',
+      'z-index:99999',
+      'box-shadow:0 -2px 0 rgba(124,92,252,0.15), 0 16px 48px rgba(0,0,0,0.7)',
+    ].join(';');
     h.innerHTML = `<span style="font-size:1.2rem">📲</span><span style="font-size:0.8rem;color:#f0f2f5;line-height:1.45"><strong style="color:var(--accent)">Add to Home Screen</strong><br>Tap <strong>Share ↑</strong> → <strong>Add to Home Screen</strong></span><button onclick="this.closest('#install-banner').remove()" style="background:none;border:none;color:#6b7585;font-size:1rem;cursor:pointer;padding:0.1rem 0.2rem">✕</button>`;
     document.body.appendChild(h);
   }, 3500);
